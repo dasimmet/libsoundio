@@ -296,6 +296,34 @@ pub const OutStream = extern struct {
             else => unreachable, // undocumented error
         }
     }
+
+    pub const ClearBufferError = error{
+        Streaming,
+        IncompatibleBackend,
+        IncompatibleDevice,
+    };
+
+    /// Clears the output stream buffer.
+    ///
+    /// This function can be called from any thread.
+    ///
+    /// This function can be called regardless of whether the outstream is
+    /// paused or not.
+    ///
+    /// Some backends do not support clearing the buffer. On these backends
+    /// this function will return SoundIoErrorIncompatibleBackend.
+    ///
+    /// Some devices do not support clearing the buffer. On these devices this
+    /// function might return SoundIoErrorIncompatibleDevice.
+    pub fn clear_buffer(outstream: *OutStream) ClearBufferError!void {
+        switch (soundio_outstream_clear_buffer(outstream)) {
+            .None => {},
+            .Streaming => return error.Streaming,
+            .IncompatibleBackend => return error.IncompatibleBackend,
+            .IncompatibleDevice => return error.IncompatibleDevice,
+            else => unreachable, // undocumented error
+        }
+    }
 };
 
 pub const InStream = extern struct {
@@ -529,7 +557,7 @@ extern fn soundio_outstream_open(outstream: *OutStream) Error;
 extern fn soundio_outstream_start(outstream: *OutStream) Error;
 extern fn soundio_outstream_begin_write(outstream: *OutStream, areas: *[*]ChannelArea, frame_count: *c_int) Error;
 extern fn soundio_outstream_end_write(outstream: *OutStream) Error;
-extern fn soundio_outstream_clear_buffer(outstream: *OutStream) c_int;
+extern fn soundio_outstream_clear_buffer(outstream: *OutStream) Error;
 extern fn soundio_outstream_pause(outstream: *OutStream, pause: bool) Error;
 extern fn soundio_outstream_get_latency(outstream: *OutStream, out_latency: *f64) c_int;
 extern fn soundio_outstream_set_volume(outstream: *OutStream, volume: f64) c_int;
